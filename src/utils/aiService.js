@@ -54,17 +54,18 @@ class AIService {
   }
 
   async handleAutomaticSearch(userMessage) {
-    // Detect questions that likely need web search
-    const questionPatterns = [
-      /^(what|who|where|when|why|how|which|can you|could you|tell me about|explain|define|meaning of)/i,
-      /(latest|recent|current|today's|breaking|price of|cost of|population of|statistics)/i
-    ];
-
-    const isQuestion = questionPatterns.some(pattern => pattern.test(userMessage));
+    // More comprehensive question detection
+    const questionWords = ['what', 'who', 'where', 'when', 'why', 'how', 'which', 'explain', 'define', 'meaning'];
+    const factWords = ['ceo', 'founder', 'price', 'cost', 'population', 'statistics', 'latest', 'current', 'recent', 'tell me'];
     
-    if (isQuestion) {
+    const lowerMessage = userMessage.toLowerCase();
+    const hasQuestionWord = questionWords.some(word => lowerMessage.includes(word));
+    const hasFactWord = factWords.some(word => lowerMessage.includes(word));
+    
+    // If it's clearly a question or contains fact-seeking words
+    if (hasQuestionWord || hasFactWord || lowerMessage.includes('?') || lowerMessage.includes('search for')) {
       const cleanQuery = this.cleanSearchQuery(userMessage);
-      console.log('🔍 Detected question, searching for:', cleanQuery);
+      console.log('🔍 Detected search query:', cleanQuery);
       const results = await webSearchService.search(cleanQuery);
       if (results && results.length > 0) {
         return webSearchService.formatSearchResults(results);
@@ -81,23 +82,31 @@ class AIService {
       'breaking news', 'today\'s news'
     ];
     
-    const isNewsRequest = newsKeywords.some(keyword => 
-      userMessage.toLowerCase().includes(keyword)
-    );
+    const lowerMessage = userMessage.toLowerCase();
+    const isNewsRequest = newsKeywords.some(keyword => lowerMessage.includes(keyword));
     
     if (isNewsRequest) {
       console.log('📰 Detected news request:', userMessage);
-      let searchTerm = userMessage;
-      newsKeywords.forEach(keyword => {
-        searchTerm = searchTerm.replace(new RegExp(keyword, 'gi'), '').trim();
-      });
       
-      if (searchTerm === '') {
-        searchTerm = 'latest';
+      // Extract search term more effectively
+      let searchTerm = userMessage;
+      for (const keyword of newsKeywords) {
+        searchTerm = searchTerm.replace(new RegExp(keyword, 'gi'), '').trim();
       }
       
-      const articles = await newsService.searchNews(searchTerm);
-      return newsService.formatNewsForChat(articles);
+      // Remove common words
+      searchTerm = searchTerm.replace(/^(about|on|for|the|a|an)\s+/gi, '').trim();
+      
+      console.log('🔍 Searching news for:', searchTerm || 'general');
+      
+      if (searchTerm) {
+        const articles = await newsService.searchNews(searchTerm);
+        return newsService.formatNewsForChat(articles);
+      } else {
+        // Get general latest news
+        const articles = await newsService.getTopHeadlines('general');
+        return newsService.formatNewsForChat(articles);
+      }
     }
     
     return null;
@@ -105,7 +114,7 @@ class AIService {
 
   cleanSearchQuery(query) {
     return query
-      .replace(/^(what is|who is|where is|when is|why is|how is|can you|could you|tell me|explain|define|meaning of|information about|facts about|details about)/i, '')
+      .replace(/^(what is|who is|where is|when is|why is|how is|can you|could you|tell me|explain|define|meaning of|information about|facts about|details about|search for)/i, '')
       .replace(/\?$/g, '')
       .trim();
   }
@@ -145,7 +154,9 @@ class AIService {
       `That's an interesting point about "${userMessage}". In the context of ${windowTitle}, what specific information are you looking for?`,
       `Regarding "${userMessage}" in your ${windowTitle} context, I can provide more details if you'd like. What aspect interests you most?`,
       `I've processed your query about "${userMessage}" in ${windowTitle}. Would you like me to elaborate on any particular aspect?`,
-      `Thanks for sharing that about "${userMessage}" in your ${windowTitle} workspace. How else can I assist you today?`
+      `Thanks for sharing that about "${userMessage}" in your ${windowTitle} workspace. How else can I assist you today?`,
+      `I'd be happy to help with "${userMessage}" in your ${windowTitle} context. What would you like to know more about?`,
+      `Great question about "${userMessage}"! In the context of ${windowTitle}, I can provide insights on this topic. What specifically interests you?`
     ];
     
     return responses[Math.floor(Math.random() * responses.length)];
