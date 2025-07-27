@@ -9,8 +9,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #111827;
-  color: #e5e7eb;
+  background-color: #111827; /* Dark mode background */
+  color: #e5e7eb; /* Light text color for better visibility */
 }
 
 code {

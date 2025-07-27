@@ -4,15 +4,19 @@ import webSearchService from './webSearch';
 class AIService {
   async processUserMessage(userMessage, windowData, conversationHistory = []) {
     try {
+      console.log('🤖 Processing user message:', userMessage);
+      
       // Handle automatic web search for questions
       const searchResult = await this.handleAutomaticSearch(userMessage);
       if (searchResult) {
+        console.log('🌐 Returning web search result');
         return searchResult;
       }
 
       // Handle news requests
       const newsResult = await this.handleNewsRequest(userMessage);
       if (newsResult) {
+        console.log('📰 Returning news result');
         return newsResult;
       }
 
@@ -22,9 +26,11 @@ class AIService {
             userMessage.toLowerCase().includes('news') ||
             userMessage.toLowerCase().includes('today') ||
             userMessage.toLowerCase().includes('headlines')) {
+          console.log('📰 Fetching latest news');
           const articles = await newsService.getTopHeadlines(windowData.newsTopic || 'technology');
           return newsService.formatNewsForChat(articles);
         } else {
+          console.log('🔍 Searching news for:', userMessage);
           const articles = await newsService.searchNews(userMessage);
           return newsService.formatNewsForChat(articles);
         }
@@ -33,14 +39,16 @@ class AIService {
       if (windowData.id === 'workout') {
         if (userMessage.toLowerCase().includes('plan') || 
             userMessage.toLowerCase().includes('generate')) {
+          console.log('💪 Generating workout plan');
           return this.getMockWorkoutPlan();
         }
       }
 
-      // For other messages, return a mock response (since we don't have Hugging Face key)
+      // For other messages, return a mock response
+      console.log('💬 Returning mock response');
       return this.getMockResponse(userMessage, windowData.title, conversationHistory);
     } catch (error) {
-      console.error('AI Service Error:', error);
+      console.error('❌ AI Service Error:', error);
       return `Sorry, I encountered an error: ${error.message}. Please try rephrasing your question.`;
     }
   }
@@ -56,8 +64,11 @@ class AIService {
     
     if (isQuestion) {
       const cleanQuery = this.cleanSearchQuery(userMessage);
+      console.log('🔍 Detected question, searching for:', cleanQuery);
       const results = await webSearchService.search(cleanQuery);
-      return webSearchService.formatSearchResults(results);
+      if (results && results.length > 0) {
+        return webSearchService.formatSearchResults(results);
+      }
     }
     
     return null;
@@ -75,6 +86,7 @@ class AIService {
     );
     
     if (isNewsRequest) {
+      console.log('📰 Detected news request:', userMessage);
       let searchTerm = userMessage;
       newsKeywords.forEach(keyword => {
         searchTerm = searchTerm.replace(new RegExp(keyword, 'gi'), '').trim();
@@ -143,10 +155,12 @@ class AIService {
     try {
       switch (action) {
         case 'fetchNews':
+          console.log('📰 Fetching latest news via special action');
           const articles = await newsService.getTopHeadlines(windowData.newsTopic || 'technology');
           return newsService.formatNewsForChat(articles);
           
         case 'generatePlan':
+          console.log('💪 Generating workout plan via special action');
           return this.getMockWorkoutPlan();
           
         case 'toggleNotify':
@@ -156,6 +170,7 @@ class AIService {
           return "Action completed successfully!";
       }
     } catch (error) {
+      console.error('❌ Special Action Error:', error);
       return `Sorry, I encountered an error processing your request: ${error.message}`;
     }
   }
