@@ -1,11 +1,23 @@
 import newsService from './newsService';
 import webSearchService from './webSearch';
+import huggingFaceService from './huggingface';
 
 class AIService {
   async processUserMessage(userMessage, windowData, conversationHistory = []) {
     try {
       console.log('🤖 Processing user message:', userMessage);
       
+      // Try Hugging Face AI first for better responses
+      try {
+        const aiResponse = await this.getAIResponse(userMessage, windowData, conversationHistory);
+        if (aiResponse) {
+          console.log('🤖 Returning AI response');
+          return aiResponse;
+        }
+      } catch (aiError) {
+        console.log('🤖 AI service failed, falling back to other methods:', aiError.message);
+      }
+
       // Handle automatic web search for questions
       const searchResult = await this.handleAutomaticSearch(userMessage);
       if (searchResult) {
@@ -50,6 +62,44 @@ class AIService {
     } catch (error) {
       console.error('❌ AI Service Error:', error);
       return `Sorry, I encountered an error: ${error.message}. Please try rephrasing your question.`;
+    }
+  }
+
+  async getAIResponse(userMessage, windowData, conversationHistory = []) {
+    try {
+      // Build context from conversation history
+      let context = `You are a helpful AI assistant specialized in ${windowData.title || 'general topics'}.\n`;
+      
+      // Add recent conversation context (last 3 exchanges)
+      if (conversationHistory.length > 0) {
+        context += "Recent conversation:\n";
+        const recentMessages = conversationHistory.slice(-6); // Last 3 exchanges
+        recentMessages.forEach(msg => {
+          const role = msg.sender === 'user' ? 'User' : 'Assistant';
+          context += `${role}: ${msg.text}\n`;
+        });
+        context += "\n";
+      }
+      
+      // Create prompt based on window type
+      let prompt = context;
+      
+      if (windowData.id === 'workout') {
+        prompt += `Create a detailed fitness plan for: ${userMessage}`;
+      } else if (windowData.id === 'news') {
+        prompt += `Summarize recent news about: ${userMessage}`;
+      } else {
+        prompt += `User asks: ${userMessage}\nAssistant:`;
+      }
+      
+      console.log('🤖 Sending prompt to Hugging Face:', prompt.substring(0, 100) + '...');
+      
+      // Get response from Hugging Face
+      const response = await huggingFaceService.getTextGeneration(prompt);
+      return response;
+    } catch (error) {
+      console.error('❌ Hugging Face Error:', error);
+      throw error;
     }
   }
 
