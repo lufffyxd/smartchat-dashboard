@@ -192,4 +192,6 @@ class NewsService {
   }
 }
 
-export default new NewsService();
+// Create and export instance
+const newsServiceInstance = new NewsService();
+export default newsServiceInstance;

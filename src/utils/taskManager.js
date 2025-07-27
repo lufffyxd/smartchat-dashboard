@@ -25,4 +25,6 @@ class TaskManager {
   }
 }
 
-export default new TaskManager();
+// Create and export instance
+const taskManagerInstance = new TaskManager();
+export default taskManagerInstance;

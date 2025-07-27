@@ -98,4 +98,6 @@ class WebSearchService {
   }
 }
 
-export default new WebSearchService();
+// Create and export instance
+const webSearchServiceInstance = new WebSearchService();
+export default webSearchServiceInstance;
